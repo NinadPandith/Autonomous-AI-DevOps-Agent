@@ -1,0 +1,3 @@
+# Optional: only needed when LLM_PROVIDER=claude (the default provider is Gemini).
+#   pip install -r requirements-claude.txt
+anthropic==1.8.0

@@ -14,7 +14,10 @@ def get_provider(name: str | None = None) -> LLMProvider:
         return GeminiProvider(os.getenv("GEMINI_API_KEY", "").strip(), config.GEMINI_MODEL,
                               config.GEMINI_FALLBACK_MODELS)
     if name == "claude":
-        from .anthropic_provider import ClaudeProvider
+        try:
+            from .anthropic_provider import ClaudeProvider
+        except ImportError as e:
+            raise LLMError("LLM_PROVIDER=claude needs the Anthropic SDK: pip install -r requirements-claude.txt") from e
         return ClaudeProvider(os.getenv("ANTHROPIC_API_KEY", "").strip(), config.CLAUDE_MODEL, config.CLAUDE_EFFORT)
     raise LLMError(f"Unknown LLM_PROVIDER {name!r} — use 'gemini' or 'claude'.")
 
