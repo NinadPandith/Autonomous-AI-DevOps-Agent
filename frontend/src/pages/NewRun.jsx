@@ -95,7 +95,7 @@ export default function NewRun() {
           checked={source === 'demo'}
           onChange={() => setSource('demo')}
           title={CTA.useDemo}
-          description="A small Python shopping-cart library seeded with 8 realistic bugs and a 22-test suite."
+          description="A small Python shopping-cart library seeded with 11 realistic bugs (easy to hard) and a 32-test suite."
         >
           <div className="mt-4">
             <label htmlFor="scenario" className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -112,7 +112,7 @@ export default function NewRun() {
                   {s.id} · {s.title} ({s.difficulty})
                 </option>
               ))}
-              <option value="all">All 8 bugs at once (longest run)</option>
+              <option value="all">All 11 bugs at once (longest run)</option>
             </select>
             {scenario !== 'all' && scenarios.length > 0 && (
               <p className="mt-2 text-xs text-slate-500">

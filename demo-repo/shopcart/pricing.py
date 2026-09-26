@@ -35,4 +35,5 @@ def is_coupon_valid(coupon: Coupon, today: date) -> bool:
 
 
 def calculate_tax(amount: float, rate: float) -> float:
+    """Tax on `amount`, rounded half-up to the cent as tax authorities require (e.g. $0.125 -> $0.13)."""
     return round(amount * rate, 2)

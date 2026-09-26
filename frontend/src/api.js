@@ -43,6 +43,7 @@ export const api = {
   reasoning: (id) => request(`/runs/${id}/reasoning`).then((r) => r.steps),
   fix: (id) => request(`/runs/${id}/fix`),
   runs: (status) => request(`/runs${status ? `?status=${status}` : ''}`).then((r) => r.runs),
+  featured: () => request('/runs/featured').then((r) => r.runs),
 }
 
 export function runSocketUrl(runId) {

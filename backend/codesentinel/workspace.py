@@ -36,6 +36,18 @@ class Workspace:
         # Interpreter used to run the repo's tests: the backend's own for the demo repo,
         # a per-run virtualenv for user repositories (see repo_setup).
         self.python = python or sys.executable
+        # Repo-relative folder the tests run from ("" = repo root), e.g. "backend" for monorepos.
+        self.project_dir = ""
+
+    @property
+    def test_cwd(self) -> Path:
+        return self.root / self.project_dir if self.project_dir else self.root
+
+    def to_repo_path(self, path: str) -> str:
+        """Convert a path relative to the test folder (as pytest prints it) to a repo-relative path."""
+        path = path.replace("\\", "/")
+        is_absolute = path.startswith("/") or (len(path) > 1 and path[1] == ":")
+        return f"{self.project_dir}/{path}" if self.project_dir and not is_absolute else path
 
     @classmethod
     def create(cls, source: Path, run_id: str, base: Path = WORKSPACES_DIR) -> "Workspace":
@@ -70,11 +82,15 @@ class Workspace:
         return ("tests" in p.parts or "test" in p.parts or p.name.startswith("test_")
                 or p.name.endswith("_test.py") or p.name == "conftest.py")
 
+    # newline="" keeps each file's own line endings byte-for-byte (no CRLF/LF translation), so
+    # snapshots, reverts and diffs are exact on every OS.
     def read(self, rel_path: str) -> str:
-        return self.resolve(rel_path).read_text(encoding="utf-8")
+        with open(self.resolve(rel_path), encoding="utf-8", newline="") as f:
+            return f.read()
 
     def write(self, rel_path: str, content: str) -> None:
-        self.resolve(rel_path).write_text(content, encoding="utf-8")
+        with open(self.resolve(rel_path), "w", encoding="utf-8", newline="") as f:
+            f.write(content)
 
     def cleanup(self) -> None:
         remove_tree(self.root.parent)

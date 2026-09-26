@@ -76,7 +76,7 @@ def run_tests(ws: Workspace, timeout: int = DEFAULT_TIMEOUT) -> TestRunResult:
     start = time.monotonic()
     try:
         proc = subprocess.run(
-            cmd, cwd=ws.root, env=scrubbed_env(), capture_output=True, text=True, timeout=timeout,
+            cmd, cwd=ws.test_cwd, env=scrubbed_env(), capture_output=True, text=True, timeout=timeout,
             encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired as exc:
@@ -91,6 +91,6 @@ def run_tests(ws: Workspace, timeout: int = DEFAULT_TIMEOUT) -> TestRunResult:
         errors=_count("errors?", summary_line),
         exit_code=proc.returncode,
         duration_s=round(time.monotonic() - start, 2),
-        failing_tests=re.findall(r"^(?:FAILED|ERROR) (\S+)", proc.stdout, re.MULTILINE),
+        failing_tests=[ws.to_repo_path(t) for t in re.findall(r"^(?:FAILED|ERROR) (\S+)", proc.stdout, re.MULTILINE)],
         output=output,
     )

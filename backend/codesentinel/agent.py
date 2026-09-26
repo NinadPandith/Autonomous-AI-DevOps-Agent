@@ -12,6 +12,7 @@ guaranteed rather than left to the model:
 
 Every step is emitted to the Trace in the `reasoning_steps` shape.
 """
+import re
 import time
 from dataclasses import dataclass, field
 
@@ -109,17 +110,32 @@ class Agent:
         if initial.total == 0 and not initial.timed_out:
             t.reflection("pytest could not collect the tests, so I'll treat this as an import or syntax problem first.")
 
-        suspects = self._localize(initial)
+        suspects, failures = self._localize(initial)
+        if missing := self._missing_modules(failures):
+            names = ", ".join(f"'{m}'" for m in missing)
+            diagnosis = (f"Setup problem: the tests can't start because Python can't find the module {names}. "
+                         "This is likely a missing dependency or an import-path issue in how the project is "
+                         "installed, not a bug in the code, so no fix was attempted.")
+            t.reflection(f"Every failure is an import error for {names}, which points to the environment rather "
+                         "than the code. Editing source files wouldn't fix that, so I'll stop here instead of "
+                         "guessing.")
+            return self._finish("needs_review", 0, diagnosis, None, [], initial, initial, start)
+
         self.convo = self.llm.conversation(SYSTEM_PROMPT, TOOLS)
         self.convo.add_user_text(self._initial_prompt(initial, suspects))
 
         current = initial
         diagnosis, confidence, bug_types = "", None, []
         attempt = 0
+        out_of_time = False
         for attempt in range(1, self.max_attempts + 1):
             t.run_update(attempt_count=attempt)
             self.attempt_snapshot = {}
-            submitted = self._attempt(attempt)
+            try:
+                submitted = self._attempt(attempt)
+            except RunTimeout:
+                # Keep what this attempt changed, verify it once, and report honestly.
+                out_of_time, submitted = True, {}
             if submitted.get("diagnosis"):
                 diagnosis = submitted["diagnosis"]
 
@@ -140,6 +156,17 @@ class Agent:
             if not verify.all_passed and self.attempt_snapshot and verify.not_passing >= current.not_passing:
                 self._revert_attempt()
                 reverted = True
+
+            if out_of_time:
+                outcome = ("and every test now passes" if verify.all_passed else
+                           f"with {verify.not_passing} test(s) still failing, down from {initial.not_passing}"
+                           if min(verify.not_passing, current.not_passing) < initial.not_passing else
+                           "without reducing the failures")
+                t.reflection(f"I ran out of time during attempt {attempt}, {outcome}. "
+                             "I'm stopping here so a person can review what I found.")
+                if not reverted:
+                    current = verify
+                break
 
             refl = self._reflect(attempt, submitted, current, verify, reverted)
             t.reflection(refl["reflection"])
@@ -162,6 +189,8 @@ class Agent:
             status = "needs_review"
         else:
             status = "failed"
+        if out_of_time and status == "failed":
+            diagnosis = "This run took too long and was stopped for safety." + (f" {diagnosis}" if diagnosis else "")
         return self._finish(status, attempt, diagnosis, confidence, bug_types, initial, current, start)
 
     def _finish(self, status, attempts, diagnosis, confidence, bug_types, initial, final, start) -> RunResult:
@@ -186,9 +215,9 @@ class Agent:
         self.trace.result("run_tests", content, result.to_dict())
         return result
 
-    def _localize(self, tests: TestRunResult) -> list[failure_parser.Suspect]:
+    def _localize(self, tests: TestRunResult) -> tuple[list[failure_parser.Suspect], list[failure_parser.TestFailure]]:
         self.trace.tool_call("parse_failures", "Parsing the failure output to locate the likely faulty code.")
-        failures = failure_parser.parse_failures(tests.output)
+        failures = failure_parser.parse_failures(tests.output, self.ws.to_repo_path)
         suspects = failure_parser.locate_suspects(self.ws, failures)
         if suspects:
             where = "; ".join(f"{s.function}() in {s.file}" for s in suspects[:4])
@@ -198,7 +227,15 @@ class Agent:
         self.trace.result("parse_failures", content, {
             "failures": failure_parser.to_dicts(failures), "suspects": failure_parser.to_dicts(suspects),
         })
-        return suspects
+        return suspects, failures
+
+    @staticmethod
+    def _missing_modules(failures: list[failure_parser.TestFailure]) -> list[str] | None:
+        """If every failure is 'No module named X', return those module names: an environment problem."""
+        if not failures or any(f.error_type != "ModuleNotFoundError" for f in failures):
+            return None
+        names = {m.group(1) for f in failures if (m := re.search(r"No module named '([^']+)'", f.message))}
+        return sorted(names) or None
 
     # ---------------------------------------------------------- plan + act
 
@@ -229,8 +266,12 @@ class Agent:
         prefetched = ("## Source files (line-numbered, as read_file shows it; likely files first)\n"
                       + "\n\n".join(sources) + "\n\n") if sources else ""
 
+        where = (f"The Python project lives in `{self.ws.project_dir}/`: pytest runs from that folder, so paths in "
+                 f"the pytest output are relative to it. Tool paths are always relative to the repository root "
+                 f"(e.g. `{self.ws.project_dir}/...`).\n\n") if self.ws.project_dir else ""
         return (
             f"The test suite is failing. {tests.summary()}\n\n"
+            f"{where}"
             f"## pytest output\n```\n{_truncate(tests.output)}\n```\n\n"
             f"## Likely locations (from a heuristic — a starting point, not proof)\n{suspect_lines}\n\n"
             f"{prefetched}"

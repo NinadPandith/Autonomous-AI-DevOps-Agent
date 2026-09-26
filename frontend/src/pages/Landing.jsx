@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from '../api'
 import { CTA } from '../copy'
 import { LinkButton } from '../components/ui'
 
@@ -18,6 +20,14 @@ const STEPS = [
 ]
 
 export default function Landing() {
+  const [featured, setFeatured] = useState(null)
+
+  useEffect(() => {
+    api.featured()
+      .then((runs) => setFeatured(runs.find((r) => r.status === 'fixed') ?? runs[0] ?? null))
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="py-12 sm:py-20">
       <section className="max-w-2xl">
@@ -31,6 +41,11 @@ export default function Landing() {
         </p>
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <LinkButton to="/run" className="px-5 py-2.5">{CTA.startRun}</LinkButton>
+          {featured && (
+            <LinkButton to={`/trace/${featured.id}?replay=1`} variant="secondary" className="px-5 py-2.5">
+              ▶ {CTA.watchRecording}
+            </LinkButton>
+          )}
           <Link to="/history" className="text-sm font-medium text-slate-300 hover:text-white">
             {CTA.viewPastRuns} →
           </Link>

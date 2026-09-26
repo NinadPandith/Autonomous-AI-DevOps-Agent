@@ -41,7 +41,8 @@ def _run(cmd: list[str], cwd: Path, timeout: int, env: dict | None = None) -> su
 
 def clone(url: str, dest: Path) -> str:
     env = {**scrubbed_env(), "GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never", "GIT_LFS_SKIP_SMUDGE": "1"}
-    proc = _run(["git", "clone", "--depth", "1", "--single-branch", "--no-tags", url, str(dest)],
+    proc = _run(["git", "-c", "core.autocrlf=false", "clone", "--depth", "1", "--single-branch", "--no-tags",
+                 url, str(dest)],
                 cwd=dest.parent, timeout=config.CLONE_TIMEOUT_S, env=env)
     if proc.returncode != 0:
         raise SetupError("The repository couldn't be cloned. Make sure the URL is correct and the repo is public.")
@@ -58,12 +59,51 @@ def venv_python(venv_dir: Path) -> str:
     return str(venv_dir / sub)
 
 
+PROJECT_MARKERS = ("pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "pytest.ini", "tox.ini",
+                   "conftest.py")
+SKIP_DIRS = {".git", ".github", "node_modules", "venv", ".venv", "env", "docs", "site-packages", "__pycache__"}
+
+
+def _has_tests(d: Path) -> bool:
+    return ((d / "tests").is_dir() or (d / "test").is_dir()
+            or any(d.glob("test_*.py")) or any(d.glob("*_test.py")))
+
+
+def _has_marker(d: Path) -> bool:
+    return any((d / m).is_file() for m in PROJECT_MARKERS) or any(d.glob("requirements*.txt"))
+
+
+def find_project_dir(repo: Path) -> Path:
+    """Where the Python project lives: the repo root, or a subfolder such as backend/ or src/app/.
+
+    Searches the root and up to two folders deep, shallowest first. Prefers a folder that has both
+    tests and a project marker (requirements, pyproject, pytest.ini, …); falls back to any folder
+    with tests; else the root.
+    """
+    levels = [[repo]]
+    for _ in range(2):
+        levels.append(sorted(
+            child for parent in levels[-1] for child in parent.iterdir()
+            if child.is_dir() and child.name not in SKIP_DIRS and not child.name.startswith(".")
+        ))
+    candidates = [d for level in levels for d in level]
+    for predicate in (lambda d: _has_tests(d) and _has_marker(d), _has_tests):
+        for d in candidates:
+            if predicate(d):
+                return d
+    return repo
+
+
 def install(ws: Workspace) -> tuple[str, list[str]]:
     """Create a virtualenv next to the repo and install the project + pytest into it.
 
-    Returns (summary, commands run). Sets ws.python to the new interpreter.
+    Detects the project folder (ws.project_dir) first. Returns (summary, commands run) and sets
+    ws.python to the new interpreter.
     """
     repo = ws.root
+    project = find_project_dir(repo)
+    ws.project_dir = "" if project == repo else project.relative_to(repo).as_posix()
+
     venv_dir = repo.parent / "venv"
     proc = _run([sys.executable, "-m", "venv", str(venv_dir)], cwd=repo.parent, timeout=120)
     if proc.returncode != 0:
@@ -72,12 +112,19 @@ def install(ws: Workspace) -> tuple[str, list[str]]:
 
     pip = [python, "-m", "pip", "install", "--disable-pip-version-check", "--no-input", "-q"]
     steps: list[list[str]] = []
-    reqs = [r for r in REQUIREMENT_FILES if (repo / r).is_file()]
+    reqs = []
+    for folder in dict.fromkeys([repo, project]):  # root first, then the project folder
+        for r in REQUIREMENT_FILES:
+            if (folder / r).is_file():
+                reqs.append((folder / r).relative_to(repo).as_posix())
     for r in reqs:
         steps.append(pip + ["-r", r])
-    if (repo / "pyproject.toml").is_file() or (repo / "setup.py").is_file():
-        # Editable, so the agent's edits are what the tests import. Unknown extras only warn.
-        steps.append(pip + ["-e", ".[test,tests,testing,dev]"])
+    for folder in dict.fromkeys([project, repo]):
+        if (folder / "pyproject.toml").is_file() or (folder / "setup.py").is_file():
+            # Editable, so the agent's edits are what the tests import. Unknown extras only warn.
+            rel = folder.relative_to(repo).as_posix()
+            steps.append(pip + ["-e", f"{'.' if rel == '.' else './' + rel}[test,tests,testing,dev]"])
+            break
     steps.append(pip + ["pytest"])
 
     ran = []
@@ -89,4 +136,5 @@ def install(ws: Workspace) -> tuple[str, list[str]]:
             raise SetupError(f"Installing dependencies failed on `{ran[-1]}`:\n{output}")
     ws.python = python
     what = ", ".join(reqs) + (" + the project itself" if any("-e" in c for c in steps) else "")
-    return (f"Installed dependencies ({what or 'pytest only'}) into an isolated environment.", ran)
+    where = f" Tests will run from {ws.project_dir}/." if ws.project_dir else ""
+    return (f"Installed dependencies ({what or 'pytest only'}) into an isolated environment.{where}", ran)

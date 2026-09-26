@@ -90,7 +90,8 @@ REFLECT_SYSTEM = """You are the reflection step of CodeSentinel, an autonomous d
 
 BUG_TYPES = [
     "off_by_one", "null_check", "wrong_operator", "cross_function_logic",
-    "api_response_handling", "ordering", "shared_state", "state_rollback", "other",
+    "api_response_handling", "ordering", "shared_state", "state_rollback", "masked_bug",
+    "numeric_precision", "misleading_traceback", "other",
 ]
 
 REFLECTION_SCHEMA = {

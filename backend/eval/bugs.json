@@ -76,6 +76,44 @@
         "buggy": "from .inventory import Inventory\n",
         "fixed": "from .inventory import Inventory, OutOfStockError\n"
       }
+    },
+    {
+      "id": "B9",
+      "title": "Loyalty points: a second bug hides behind the first",
+      "difficulty": "hard",
+      "bug_type": "masked_bug",
+      "file": "shopcart/loyalty.py",
+      "buggy": "        earned = round(amount_spent * POINTS_PER_DOLLAR)\n",
+      "fixed": "        earned = math.floor(amount_spent * POINTS_PER_DOLLAR)\n",
+      "extra_fix": {
+        "buggy": "        return round(points // REDEEM_BLOCK * POINT_VALUE, 2)\n",
+        "fixed": "        return round(points * POINT_VALUE, 2)\n"
+      },
+      "note": "The test stops at the first failing assertion (earn), so the redeem bug only appears after the first fix is verified."
+    },
+    {
+      "id": "B10",
+      "title": "Tax uses banker's rounding instead of half-up",
+      "difficulty": "hard",
+      "bug_type": "numeric_precision",
+      "file": "shopcart/pricing.py",
+      "buggy": "    return round(amount * rate, 2)\n",
+      "fixed": "    exact = Decimal(str(amount)) * Decimal(str(rate))\n    return float(exact.quantize(Decimal(\"0.01\"), rounding=ROUND_HALF_UP))\n",
+      "extra_fix": {
+        "buggy": "from datetime import date\n",
+        "fixed": "from datetime import date\nfrom decimal import ROUND_HALF_UP, Decimal\n"
+      },
+      "note": "Regression trap: quick fixes (+0.005, floor(x*100+0.5), Decimal of the float product) each fail a different test case."
+    },
+    {
+      "id": "B11",
+      "title": "Cart.from_dict keeps form quantities as strings and overwrites duplicates",
+      "difficulty": "hard",
+      "bug_type": "misleading_traceback",
+      "file": "shopcart/cart.py",
+      "buggy": "            cart.items[product.sku] = CartItem(product, item[\"quantity\"])\n",
+      "fixed": "            cart.add_item(product, int(item[\"quantity\"]))\n",
+      "note": "The TypeError is raised in models.CartItem.line_total, but the root cause is in cart.from_dict; patching line_total does not pass."
     }
   ]
 }

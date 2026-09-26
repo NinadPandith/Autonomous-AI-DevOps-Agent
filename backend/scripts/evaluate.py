@@ -7,7 +7,7 @@ attempts, time and API usage. Optionally runs a single-shot baseline (one LLM
 call, no loop, no verification/retry) on the same bugs for comparison.
 
 Usage (from backend/):
-    .venv\Scripts\python scripts\evaluate.py                    # all 8 bugs, agent only
+    .venv\Scripts\python scripts\evaluate.py                    # all 11 bugs, agent only
     .venv\Scripts\python scripts\evaluate.py --baseline         # agent + single-shot baseline
     .venv\Scripts\python scripts\evaluate.py --bugs B1,B7
     .venv\Scripts\python scripts\evaluate.py --resume eval\results\eval_XXXX.json

@@ -18,6 +18,15 @@ def test_update_quantity_to_zero_removes_item():
     assert cart.is_empty()
 
 
+def test_cart_from_form_payload():
+    cart = Cart.from_dict({"items": [
+        {"sku": "MUG-01", "name": "Mug", "price": "12.00", "quantity": "2"},
+        {"sku": "MUG-01", "name": "Mug", "price": "12.00", "quantity": "1"},
+    ]})
+    assert cart.subtotal == 36.00
+    assert cart.items["MUG-01"].quantity == 3
+
+
 def test_subtotal_sums_line_totals():
     cart = Cart()
     cart.add_item(MUG, 2)

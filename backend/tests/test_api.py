@@ -23,7 +23,10 @@ def b1_script():
 
 
 @pytest.fixture
-def make_client(tmp_path):
+def make_client(tmp_path, monkeypatch):
+    import app.main as main_mod
+    monkeypatch.setattr(main_mod, "FEATURED_RUNS_FILE", tmp_path / "no_featured_runs.json")
+
     def factory(script_factory=b1_script):
         store = Store(tmp_path / "test.db")
         runner = RunManager(store, RunEventHub(), llm_factory=script_factory, workspaces_dir=tmp_path / "ws")
@@ -35,7 +38,7 @@ def test_demo_repo_and_scenarios(make_client):
     with make_client() as client:
         assert client.get("/api/repos/demo").json()["id"] == DEMO_REPO_ID
         scenarios = client.get("/api/repos/demo/scenarios").json()["scenarios"]
-        assert len(scenarios) == 8
+        assert len(scenarios) == 11
         assert all(set(s) == {"id", "title", "difficulty", "bug_type"} for s in scenarios)  # never the fix
 
 
@@ -62,7 +65,7 @@ def test_full_run_lifecycle(make_client):
         assert fix["tests_passed"] is True
         assert fix["files_changed"] == ["shopcart/utils.py"]
         assert "(page - 1) * page_size" in fix["diff_after"]
-        assert "22 passed" in fix["tests_summary"]
+        assert "32 passed" in fix["tests_summary"]
 
         listed = client.get("/api/runs", params={"status": "fixed"}).json()["runs"]
         assert [r["id"] for r in listed] == [run_id]
@@ -184,3 +187,29 @@ def test_user_repo_setup_failure_is_reported(make_client, monkeypatch):
         run = client.get(f"/api/runs/{run_id}").json()
         assert run["status"] == "failed"
         assert "couldn't be cloned" in run["diagnosis_summary"]
+
+
+def test_featured_runs_are_loaded_on_startup(tmp_path, monkeypatch):
+    """A recorded run exported from one database appears, complete, in a fresh one."""
+    import json
+
+    import app.main as main_mod
+    source = Store(tmp_path / "source.db")
+    runner = RunManager(source, RunEventHub(), llm_factory=b1_script, workspaces_dir=tmp_path / "ws")
+    with TestClient(create_app(source, runner)) as client:
+        run_id = client.post("/api/runs", json={"repo_id": DEMO_REPO_ID, "bug_ids": ["B1"]}).json()["id"]
+    fixtures = tmp_path / "featured_runs.json"
+    fixtures.write_text(json.dumps({"runs": [source.export_run(run_id)]}), encoding="utf-8")
+    monkeypatch.setattr(main_mod, "FEATURED_RUNS_FILE", fixtures)
+
+    fresh = Store(tmp_path / "fresh.db")
+    runner = RunManager(fresh, RunEventHub(), llm_factory=b1_script, workspaces_dir=tmp_path / "ws2")
+    with TestClient(create_app(fresh, runner)) as client:
+        featured = client.get("/api/runs/featured").json()["runs"]
+        assert [r["id"] for r in featured] == [run_id]
+        assert featured[0]["status"] == "fixed"
+        assert client.get(f"/api/runs/{run_id}/reasoning").json()["steps"] == \
+            TestClient(create_app(source, runner)).get(f"/api/runs/{run_id}/reasoning").json()["steps"]
+        assert client.get(f"/api/runs/{run_id}/fix").json()["tests_passed"] is True
+    # Loading twice is harmless.
+    assert fresh.import_run(source.export_run(run_id)) is False

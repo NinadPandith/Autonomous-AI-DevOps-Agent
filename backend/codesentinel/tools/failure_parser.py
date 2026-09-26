@@ -43,7 +43,18 @@ class Suspect:
     tests: list[str] = field(default_factory=list)
 
 
-def parse_failures(output: str) -> list[TestFailure]:
+def parse_failures(output: str, to_repo_path=lambda p: p.replace("\\", "/")) -> list[TestFailure]:
+    """Parse pytest's --tb=short output. `to_repo_path` maps paths as pytest printed them
+    (relative to the folder the tests ran from) to repo-relative paths."""
+    failures = _parse(output)
+    for f in failures:
+        f.test_id = to_repo_path(f.test_id)
+        for fr in f.frames:
+            fr.file = to_repo_path(fr.file)
+    return failures
+
+
+def _parse(output: str) -> list[TestFailure]:
     ids_by_name = {}
     for test_id, _ in SUMMARY_RE.findall(output):
         ids_by_name[test_id.split("::")[-1]] = test_id
@@ -72,6 +83,13 @@ def parse_failures(output: str) -> list[TestFailure]:
         test_id = ids_by_name.get(title, title.removeprefix("ERROR collecting ").strip())
         failures.append(TestFailure(test_id, error_type, message, frames))
     return failures
+
+
+def _in_repo(ws: Workspace, path: str) -> bool:
+    try:
+        return ws.resolve(path).is_file()
+    except Exception:
+        return False
 
 
 def _definitions_index(ws: Workspace) -> tuple[dict[str, list[str]], set[str]]:
@@ -138,7 +156,9 @@ def locate_suspects(ws: Workspace, failures: list[TestFailure], limit: int = 6) 
 
     unexplained = []
     for f in failures:
-        source_frames = [fr for fr in f.frames if not Workspace.is_test_path(fr.file)]
+        # Frames in the repo's own source (not tests, not the standard library or site-packages).
+        source_frames = [fr for fr in f.frames
+                         if not Workspace.is_test_path(fr.file) and _in_repo(ws, fr.file)]
         if source_frames:
             deepest = source_frames[-1]
             add(deepest.file, deepest.function, f"raised {f.error_type}", f.test_id)

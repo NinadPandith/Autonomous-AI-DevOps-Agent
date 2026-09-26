@@ -1,7 +1,7 @@
 """CodeSentinel CLI — run the agent against a repository and watch the trace.
 
 Examples (from backend/):
-    .venv\\Scripts\\python run_agent.py                   # demo repo, all 8 bugs
+    .venv\\Scripts\\python run_agent.py                   # demo repo, all 11 bugs
     .venv\\Scripts\\python run_agent.py --bugs B1         # demo repo with only bug B1 planted
     .venv\\Scripts\\python run_agent.py --repo ..\\some-repo
 """

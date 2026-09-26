@@ -5,6 +5,21 @@ class Cart:
     def __init__(self) -> None:
         self.items: dict[str, CartItem] = {}
 
+    @classmethod
+    def from_dict(cls, data: dict) -> "Cart":
+        """Build a cart from an order payload such as a submitted web form:
+
+            {"items": [{"sku": "MUG-01", "name": "Mug", "price": "12.00", "quantity": "2"}, ...]}
+
+        Form fields arrive as strings, so prices and quantities are converted to numbers.
+        The same SKU may appear more than once; its quantities are combined.
+        """
+        cart = cls()
+        for item in data["items"]:
+            product = Product(item["sku"], item["name"], float(item["price"]))
+            cart.items[product.sku] = CartItem(product, item["quantity"])
+        return cart
+
     def add_item(self, product: Product, quantity: int = 1) -> None:
         if quantity <= 0:
             raise ValueError("Quantity must be positive")

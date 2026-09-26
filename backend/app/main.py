@@ -59,6 +59,8 @@ def create_app(store: Store | None = None, runner: RunManager | None = None) -> 
         hub.bind_loop(asyncio.get_running_loop())
         store.ensure_demo_repo()
         store.mark_interrupted_runs()
+        for bundle in _featured_bundles():
+            store.import_run(bundle)
         yield
 
     app = FastAPI(title="CodeSentinel API", version="0.1.0", lifespan=lifespan)
@@ -146,7 +148,8 @@ def create_app(store: Store | None = None, runner: RunManager | None = None) -> 
                 raise ApiError(422, "UNKNOWN_BUG_ID", f"bug_ids must be a non-empty subset of {sorted(known)}.")
         if config.MAX_RUNS_PER_DAY:
             today = datetime.now(timezone.utc).strftime("%Y-%m-%dT00:00:00Z")
-            if store.count_runs_since(today) >= config.MAX_RUNS_PER_DAY:
+            featured_ids = {b["run"]["id"] for b in _featured_bundles()}
+            if store.count_runs_since(today, featured_ids) >= config.MAX_RUNS_PER_DAY:
                 raise ApiError(429, "DAILY_LIMIT_REACHED",
                                "This demo has reached its run limit for today. Past runs are still available "
                                "under History, and new runs open again tomorrow (UTC).")
@@ -167,6 +170,16 @@ def create_app(store: Store | None = None, runner: RunManager | None = None) -> 
                 repo_urls[run["repo_id"]] = (store.get_repo(run["repo_id"]) or {}).get("repo_url")
             runs.append({**run, "repo_url": repo_urls[run["repo_id"]]})
         return {"runs": runs}
+
+    @api.get("/runs/featured")
+    def featured_runs():
+        """Recorded real runs shipped with the app, for the public demo's replay mode."""
+        featured = []
+        for bundle in _featured_bundles():
+            run = store.get_run(bundle["run"]["id"])
+            if run:
+                featured.append({**run, "repo_url": bundle["repo"]["repo_url"]})
+        return {"runs": featured}
 
     @api.get("/runs/{run_id}")
     def get_run(run_id: str):
@@ -241,6 +254,16 @@ def create_app(store: Store | None = None, runner: RunManager | None = None) -> 
             hub.unsubscribe(run_id, queue)
 
     return app
+
+
+FEATURED_RUNS_FILE = config.BACKEND_DIR / "fixtures" / "featured_runs.json"
+
+
+def _featured_bundles() -> list[dict]:
+    try:
+        return json.loads(FEATURED_RUNS_FILE.read_text(encoding="utf-8"))["runs"]
+    except (FileNotFoundError, ValueError, KeyError):
+        return []
 
 
 def _github_repo_info(url: str) -> dict | None | bool:

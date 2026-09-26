@@ -48,8 +48,10 @@ Most AI coding tools need a human prompt for every step: check the logs, find th
 - 🎯 **Fault localization** — traceback analysis plus spectrum-based scoring (the share of a function's calling tests that fail) points the agent at likely culprits.
 - 📡 **Live reasoning trace** — every step streams over a WebSocket; refreshing mid-run replays history and falls back to polling if the socket drops.
 - 🧾 **Reviewable output** — plain-language diagnosis, confidence, side-by-side diff, and a downloadable `.patch`.
-- 🧪 **Seeded benchmark + evaluation harness** — 8 planted bugs from easy to hard, per-bug metrics, and a single-shot baseline for comparison.
+- 🧪 **Seeded benchmark + evaluation harness** — 11 planted bugs from easy to hard, including traps where the obvious first fix fails verification; per-bug metrics and a single-shot baseline for comparison.
+- ▶️ **Replay mode** — recorded real runs ship with the app, so visitors can watch the agent work without spending API quota.
 - 🔌 **Provider-agnostic** — Google Gemini free tier by default (with automatic model fallback on quota limits) or the Claude API.
+- 📦 **Runs on real repositories** — paste a public GitHub repo: it is cloned, its project folder (root, `backend/`, `src/…`) is detected, dependencies are installed in an isolated environment, and import/dependency problems are reported as setup problems instead of guessed at.
 - 🛡️ **Guardrails** — per-run isolated workspace, read-only tests, secret-scrubbed subprocesses, time limits, one run at a time, and a daily run cap for public deployments.
 
 ## How it works
@@ -144,9 +146,10 @@ On Windows you can also double-click `start-backend.cmd` and `start-frontend.cmd
 
 ```bash
 python run_agent.py --bugs B1           # watch the agent fix one planted bug in the terminal
-python run_agent.py                     # all 8 planted bugs at once
+python run_agent.py                     # all 11 planted bugs at once
 python scripts/watch_run.py             # trigger a run over HTTP and follow its WebSocket
 python scripts/evaluate.py --baseline   # per-bug evaluation vs. a single-shot baseline
+python scripts/export_featured.py <run_id>   # save a real run for replay mode
 ```
 
 ## Usage
@@ -157,6 +160,8 @@ python scripts/evaluate.py --baseline   # per-bug evaluation vs. a single-shot b
 4. When the run finishes, click **View Fix** to see the diagnosis, test result, and diff.
 5. **History** lists every run, filterable by outcome.
 
+No API key handy? Click **Watch a Recorded Run** on the home page to replay a real run, sped up.
+
 ### Running the agent on your own repository
 
 **Paste Your Own Repo** works with public Python repositories on GitHub that have a pytest suite. The agent shallow-clones the repository, creates a fresh virtualenv, installs `requirements*.txt` and the project itself, then runs the same detect → fix → verify loop.
@@ -165,7 +170,7 @@ This executes the repository's install scripts and tests on the machine running 
 
 ## The benchmark
 
-[`demo-repo/`](demo-repo/) is a small Python shopping-cart library (~250 lines, 22 tests) seeded with 8 bugs. The ground truth lives in [`backend/eval/bugs.json`](backend/eval/bugs.json), outside anything the agent can read.
+[`demo-repo/`](demo-repo/) is a small Python shopping-cart library (~300 lines, 32 tests) seeded with 11 bugs. The ground truth lives in [`backend/eval/bugs.json`](backend/eval/bugs.json), outside anything the agent can read.
 
 | Bug | Difficulty | Type |
 |---|---|---|
@@ -177,6 +182,11 @@ This executes the repository's install scripts and tests on the machine running 
 | B6 Free-shipping check uses the pre-discount subtotal | medium | ordering |
 | B7 Receipts share lines through a mutable default argument | hard | shared state |
 | B8 Failed checkout leaves stock reservations in place | hard | missing rollback |
+| B9 Loyalty points: a second bug hides behind the first | hard | masked bug — only visible after the first fix |
+| B10 Tax uses banker's rounding instead of half-up | hard | numeric precision — regression trap |
+| B11 `Cart.from_dict` keeps form quantities as strings | hard | misleading traceback — crash surfaces in another file |
+
+B9–B11 are designed so the obvious first fix fails verification — the case where a verify-and-retry loop should beat a single-shot fix. Each trap was checked: `+0.005`, `floor(x*100+0.5)` and `Decimal(float)` fixes for B10, a symptom fix in `CartItem.line_total` for B11, and fixing only the visible half of B9 all leave tests failing.
 
 ## Results
 
@@ -186,7 +196,7 @@ Runs so far (Gemini free tier):
 
 | Scenario | Outcome | Attempts | Time |
 |---|---|---|---|
-| All 8 bugs at once | ✅ Fixed & verified — 11 failing → 0 failing of 22 | 1 | 212 s |
+| All 8 original bugs at once | ✅ Fixed & verified — 11 failing → 0 failing of 22 | 1 | 212 s |
 | B1 (easy) | ✅ Fixed & verified | 1 | 88 s |
 | B3 (easy) | ✅ Fixed & verified | 1 | 350 s ¹ |
 | B7 (hard) | ✅ Fixed & verified (single-shot baseline also fixed it) | 1 | 86 s |
@@ -205,11 +215,12 @@ Runs so far (Gemini free tier):
 │   │   ├── repo_setup.py    Clone + isolated install for user repositories
 │   │   └── db.py            SQLite schema and queries
 │   ├── eval/                Bug manifest (ground truth) and evaluation results
+│   ├── fixtures/            Recorded runs for replay mode
 │   ├── scripts/             Setup checks, evaluation harness, live-run watcher
 │   ├── tests/               Agent loop + API tests (scripted LLM)
 │   └── run_agent.py         Command-line runner
 ├── frontend/                React dashboard (5 pages, shared components)
-├── demo-repo/               Seeded benchmark repository with 8 planted bugs
+├── demo-repo/               Seeded benchmark repository with 11 planted bugs
 ├── docs/                    Product docs (PRD, app flow, schema, …) and screenshots
 ├── render.yaml              Render blueprint (API)
 └── DEPLOY.md                Free deployment guide (Render + Vercel)
@@ -217,16 +228,16 @@ Runs so far (Gemini free tier):
 
 ## Known limitations
 
-- **Repository layouts:** user repositories are installed and tested from the repository root. Projects whose Python code and tests live in a subfolder (e.g. `backend/`) currently fail to import during test collection; subfolder detection is next on the roadmap.
 - **Python + pytest only.**
 - **Process-level isolation**, not a container sandbox — see [SECURITY.md](SECURITY.md).
 - **Free-tier LLM quotas** (about 20 requests per model per day) limit how many runs fit in a day and can slow runs when a model is overloaded.
 
 ## Roadmap
 
-- [ ] Detect projects in subfolders (`backend/`, `src/`) and report setup problems separately from code bugs
-- [ ] Harder benchmark bugs where the first attempt is expected to fail, plus full evaluation results
-- [ ] Replay mode for the public demo (recorded real runs, no quota needed)
+- [x] Detect projects in subfolders (`backend/`, `src/`) and report setup problems separately from code bugs
+- [x] Harder benchmark bugs where the first attempt is expected to fail
+- [ ] Full evaluation results across all 11 bugs
+- [x] Replay mode for the public demo (recorded real runs, no quota needed)
 - [ ] Docker sandbox for test execution
 - [ ] Long-term memory of past fixes (vector store)
 - [ ] Open a GitHub pull request with the verified fix

@@ -177,3 +177,21 @@ def test_workspace_blocks_path_escape(b1_workspace):
     from codesentinel.workspace import WorkspaceError
     with pytest.raises(WorkspaceError):
         b1_workspace.resolve("../../outside.txt")
+
+
+def test_running_out_of_time_keeps_progress(b1_workspace, monkeypatch):
+    """Time runs out mid-attempt after a correct edit: the edit is verified and the run still counts."""
+    import codesentinel.agent as agent_mod
+    client = ScriptedClient(agent_turns=[message(fix_b1()), message(text("still thinking…"))], reflections=[])
+    agent = make_agent(b1_workspace, client, Recorder())
+    calls = {"n": 0}
+
+    def deadline_after_first_turn():
+        calls["n"] += 1
+        if calls["n"] > 1:
+            raise agent_mod.RunTimeout("This run took too long and was stopped for safety.")
+
+    monkeypatch.setattr(agent, "_check_deadline", deadline_after_first_turn)
+    result = agent.run()
+    assert result.status == "fixed"  # the fix made before the timeout was verified
+    assert result.final_tests["all_passed"]

@@ -40,6 +40,7 @@ export const CTA = {
   viewAllRuns: 'View All Runs',
   viewTrace: 'View Trace',
   downloadPatch: 'Download Patch',
+  watchRecording: 'Watch a Recorded Run',
 }
 
 export const ERRORS = {
