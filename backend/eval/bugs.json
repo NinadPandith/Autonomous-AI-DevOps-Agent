@@ -1,0 +1,81 @@
+{
+  "_comment": "Ground truth for the seeded demo repo. Hidden from the agent — used only for evaluation (PRD §10). `buggy` is the exact text in demo-repo; `fixed` is the correct replacement.",
+  "bugs": [
+    {
+      "id": "B1",
+      "title": "Pagination skips the first page",
+      "difficulty": "easy",
+      "bug_type": "off_by_one",
+      "file": "shopcart/utils.py",
+      "buggy": "    start = page * page_size\n",
+      "fixed": "    start = (page - 1) * page_size\n"
+    },
+    {
+      "id": "B2",
+      "title": "find_coupon crashes when no code is given",
+      "difficulty": "easy",
+      "bug_type": "null_check",
+      "file": "shopcart/pricing.py",
+      "buggy": "    return coupons.get(code.strip().upper())\n",
+      "fixed": "    if not code:\n        return None\n    return coupons.get(code.strip().upper())\n"
+    },
+    {
+      "id": "B3",
+      "title": "Bulk discount not applied at exactly the threshold",
+      "difficulty": "easy",
+      "bug_type": "wrong_operator",
+      "file": "shopcart/pricing.py",
+      "buggy": "    return BULK_DISCOUNT if quantity > BULK_THRESHOLD else 0.0\n",
+      "fixed": "    return BULK_DISCOUNT if quantity >= BULK_THRESHOLD else 0.0\n"
+    },
+    {
+      "id": "B4",
+      "title": "Coupon percentage converted to a fraction twice",
+      "difficulty": "medium",
+      "bug_type": "cross_function_logic",
+      "file": "shopcart/checkout.py",
+      "buggy": "        discounted = apply_percentage_discount(subtotal, coupon.percent_off / 100)\n",
+      "fixed": "        discounted = apply_percentage_discount(subtotal, coupon.percent_off)\n"
+    },
+    {
+      "id": "B5",
+      "title": "Shipping API error responses not handled",
+      "difficulty": "medium",
+      "bug_type": "api_response_handling",
+      "file": "shopcart/shipping_client.py",
+      "buggy": "    rates = response[\"data\"][\"rates\"]\n",
+      "fixed": "    if response.get(\"status\") != \"ok\":\n        error = response.get(\"error\") or {}\n        raise ShippingAPIError(error.get(\"message\", \"Unknown shipping API error\"))\n    rates = response[\"data\"][\"rates\"]\n"
+    },
+    {
+      "id": "B6",
+      "title": "Free-shipping check uses the pre-discount subtotal",
+      "difficulty": "medium",
+      "bug_type": "ordering",
+      "file": "shopcart/checkout.py",
+      "buggy": "    if subtotal >= FREE_SHIPPING_THRESHOLD:\n",
+      "fixed": "    if discounted >= FREE_SHIPPING_THRESHOLD:\n"
+    },
+    {
+      "id": "B7",
+      "title": "Receipts share lines through a mutable default argument",
+      "difficulty": "hard",
+      "bug_type": "shared_state",
+      "file": "shopcart/receipt.py",
+      "buggy": "def format_receipt(cart: Cart, lines: list[str] = []) -> list[str]:\n    \"\"\"Render one line per cart item followed by the subtotal.\n\n    Pass `lines` to append to an existing receipt (e.g. one with a header).\n    \"\"\"\n",
+      "fixed": "def format_receipt(cart: Cart, lines: list[str] | None = None) -> list[str]:\n    \"\"\"Render one line per cart item followed by the subtotal.\n\n    Pass `lines` to append to an existing receipt (e.g. one with a header).\n    \"\"\"\n    if lines is None:\n        lines = []\n"
+    },
+    {
+      "id": "B8",
+      "title": "Failed checkout leaves earlier stock reservations in place",
+      "difficulty": "hard",
+      "bug_type": "state_rollback",
+      "file": "shopcart/checkout.py",
+      "buggy": "    for item in cart.items.values():\n        inventory.reserve(item.product.sku, item.quantity)\n",
+      "fixed": "    reserved = []\n    try:\n        for item in cart.items.values():\n            inventory.reserve(item.product.sku, item.quantity)\n            reserved.append(item)\n    except OutOfStockError:\n        for item in reserved:\n            inventory.release(item.product.sku, item.quantity)\n        raise\n",
+      "extra_fix": {
+        "buggy": "from .inventory import Inventory\n",
+        "fixed": "from .inventory import Inventory, OutOfStockError\n"
+      }
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.db
+chroma_data/
+
+# Node
+node_modules/
+dist/
+
+# Agent workspaces (patched copies of the demo repo)
+workspaces/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

@@ -1,0 +1,9 @@
+[project]
+name = "shopcart"
+version = "0.1.0"
+description = "A small shopping cart and checkout library."
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

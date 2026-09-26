@@ -1,0 +1,46 @@
+{
+  "started_at": "2026-09-26T20:39:56",
+  "model": "gemini / gemini-3.8-flash (fallbacks: gemini-3.5-flash, gemini-3-flash-preview, gemini-3.1-flash-lite)",
+  "baseline": true,
+  "bugs": {
+    "B7": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 85.5,
+        "diagnosis": "The use of a mutable default argument caused receipt lines to leak between independent function calls, likely leading to duplicate or extraneous data in the output.",
+        "predicted_bug_types": [
+          "shared_state"
+        ],
+        "files_changed": [
+          "shopcart/receipt.py"
+        ],
+        "usage": {
+          "input_tokens": 68768,
+          "output_tokens": 1574,
+          "cached_tokens": 14100,
+          "api_calls": 13,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 10.0,
+        "diagnosis": "The `format_receipt` function accepts a mutable default argument `lines=[]`. Because lists are mutable in Python, the list is shared across calls to `format_receipt`, leading to the items from previous cart calculations being retained in subsequent calls.",
+        "usage": {
+          "input_tokens": 2676,
+          "output_tokens": 276,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    }
+  }
+}

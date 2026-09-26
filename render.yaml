@@ -1,0 +1,26 @@
+# Render Blueprint — deploys the CodeSentinel API (free plan).
+# Render dashboard → New → Blueprint → pick this repo. Fill in the two secret values when prompted.
+services:
+  - type: web
+    name: codesentinel-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.2
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: GEMINI_API_KEY
+        sync: false # secret — paste your key in the Render dashboard
+      - key: FRONTEND_ORIGINS
+        sync: false # your Vercel URL, e.g. https://codesentinel.vercel.app
+      - key: MAX_RUNS_PER_DAY
+        value: "10" # protects the free Gemini quota from a public link
+      - key: RUN_TIME_LIMIT_S
+        value: "600"
+      - key: ALLOW_USER_REPOS
+        value: "false" # "Paste Your Own Repo" runs strangers' code on this server, next to your API key
