@@ -12,7 +12,7 @@
 ![Gemini](https://img.shields.io/badge/LLM-Gemini_%7C_Claude-8E75B2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Demo](#demo) · [How it works](#how-it-works) · [Setup](#setup) · [Results](#results) · [Roadmap](#roadmap)
+[Demo](#demo) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Results](#results) · [Roadmap](#roadmap)
 
 </div>
 
@@ -107,7 +107,16 @@ One run, step by step:
 | Quality | pytest (agent loop + API against a scripted LLM), oxlint, GitHub Actions CI |
 | Hosting | Render (API) + Vercel (dashboard), free tiers — see [DEPLOY.md](DEPLOY.md) |
 
+## Quick start
+
+**Windows:** download or clone the repo and double-click **`run.bat`**.
+**macOS / Linux:** run `./run.sh`.
+
+The launcher checks for Python 3.12+ and Node 20+, installs everything on the first run (a few minutes), asks for a free Gemini API key (press Enter to skip and just watch recorded runs), starts the API and the dashboard, and opens **http://localhost:5180**. Later runs start in seconds. Keep the project in a short folder path such as `C:\CodeSentinel` — some dependencies have very long file names, and Windows limits paths to 260 characters.
+
 ## Setup
+
+Manual setup, if you prefer to run each piece yourself.
 
 **Requirements:** Python 3.12+, Node 20+, and a free Gemini API key from [aistudio.google.com](https://aistudio.google.com) (no credit card).
 
@@ -140,7 +149,7 @@ copy .env.example .env              # macOS/Linux: cp .env.example .env
 npm run dev                         # http://localhost:5180
 ```
 
-On Windows you can also double-click `start-backend.cmd` and `start-frontend.cmd`.
+To use Claude instead of Gemini, also run `pip install -r requirements-claude.txt` and set `LLM_PROVIDER=claude` in `backend/.env`.
 
 **Command-line tools** (from `backend/`)
 
