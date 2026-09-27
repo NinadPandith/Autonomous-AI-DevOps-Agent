@@ -199,18 +199,26 @@ B9–B11 are designed so the obvious first fix fails verification — the case w
 
 ## Results
 
-> The full per-bug evaluation (`python scripts/evaluate.py --baseline`) is in progress — the free API tier allows roughly one full evaluation per day. Results are written to [`backend/eval/results/`](backend/eval/results/).
+Evaluation on 27 Sep 2026: one run per planted bug, each starting from the demo repo with only that bug present, on the Gemini free tier. The single-shot baseline gets one LLM call with the failing output and all source files, no tools, no verification, no retry. Full report: [`backend/eval/results/eval_20260927_143807.md`](backend/eval/results/eval_20260927_143807.md).
 
-Runs so far (Gemini free tier):
+| Metric | Agent (plan → act → verify → reflect → retry) | Single-shot baseline |
+|---|---|---|
+| **Bugs fixed** (full suite passes) | **91% (10/11)** | 82% (9/11) |
+| Hard bugs fixed (B7–B11) | **80% (4/5)** | 60% (3/5) |
+| Root cause localized (changed the right file) | 100% (11/11) | 100% (11/11) |
+| Bug type classified correctly | 73% (8/11) | — |
+| Avg. attempts per fixed bug | 1.2 | 1 |
+| Avg. time per run | 97 s | 22 s |
+| Avg. API requests per run | 6.9 | 1 |
 
-| Scenario | Outcome | Attempts | Time |
-|---|---|---|---|
-| All 8 original bugs at once | ✅ Fixed & verified — 11 failing → 0 failing of 22 | 1 | 212 s |
-| B1 (easy) | ✅ Fixed & verified | 1 | 88 s |
-| B3 (easy) | ✅ Fixed & verified | 1 | 350 s ¹ |
-| B7 (hard) | ✅ Fixed & verified (single-shot baseline also fixed it) | 1 | 86 s |
+**What the numbers show**
 
-¹ The free-tier model was overloaded; the provider fell back to another model twice.
+- **Self-verification pays off on the traps.** On B11 (misleading traceback) and B10 (rounding regression trap), the agent's first fix failed verification; it reflected on the failing output and succeeded on attempt 2. The single-shot baseline, with no way to check its work, failed B11.
+- **Easy and medium bugs don't need the loop.** B1–B8 were fixed on the first attempt by both approaches; there the baseline is 4× faster and uses one request instead of ~7. The loop's value is correctness on hard bugs, not speed.
+- **Failure case — B9 (masked bug).** On the smallest fallback model (`gemini-3.1-flash-lite`), the agent fixed the redemption bug but never the points-rounding bug hiding in front of it, and ran out of attempts. The same bug was fixed on the first attempt in a live run with `gemini-3.8-flash`, which read both bugs from the code. Model strength matters most for bugs that the tests reveal one at a time.
+- **Caveat.** Free-tier quotas meant the run fell back across models: B1–B4 finished on `gemini-3.5-flash` / `gemini-3-flash-preview`, B5–B11 on `gemini-3.1-flash-lite`. Each baseline call ran on the same model as its agent run, so the comparison is like-for-like, but numbers on a single model would differ.
+
+Other runs: all 8 original bugs at once were fixed in a single attempt (11 failing → 0 of 22 tests, 212 s). On a real multi-folder repository (FastAPI + React), the agent detected the `backend/` project, ran its tests, and reduced failures from 3 to 2 before its time limit.
 
 ## Project structure
 
@@ -245,7 +253,7 @@ Runs so far (Gemini free tier):
 
 - [x] Detect projects in subfolders (`backend/`, `src/`) and report setup problems separately from code bugs
 - [x] Harder benchmark bugs where the first attempt is expected to fail
-- [ ] Full evaluation results across all 11 bugs
+- [x] Full evaluation results across all 11 bugs
 - [x] Replay mode for the public demo (recorded real runs, no quota needed)
 - [ ] Docker sandbox for test execution
 - [ ] Long-term memory of past fixes (vector store)

@@ -1,0 +1,438 @@
+{
+  "started_at": "2026-09-27T14:38:07",
+  "model": "gemini / gemini-3.8-flash (fallbacks: gemini-3.5-flash, gemini-3-flash-preview, gemini-3.1-flash-lite)",
+  "baseline": true,
+  "bugs": {
+    "B1": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 74.1,
+        "diagnosis": "The paginate function incorrectly calculated the slice start index because it assumed page numbers were 0-indexed instead of 1-indexed.",
+        "predicted_bug_types": [
+          "off_by_one"
+        ],
+        "files_changed": [
+          "shopcart/utils.py"
+        ],
+        "usage": {
+          "input_tokens": 17832,
+          "output_tokens": 1836,
+          "cached_tokens": 6071,
+          "api_calls": 4,
+          "provider": "gemini",
+          "model": "gemini-3.5-flash"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 18.3,
+        "diagnosis": "The pagination helper function `paginate` calculates the starting index as `page * page_size`. Since pages are 1-indexed, the first page starts at index `page_size` instead of 0. This off-by-one error (by a full page size) causes incorrect elements to be returned. Changing the formula to `(page - 1) * page_size` resolves the issue.",
+        "usage": {
+          "input_tokens": 3607,
+          "output_tokens": 765,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.5-flash"
+        }
+      }
+    },
+    "B2": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 90.3,
+        "diagnosis": "The find_coupon function was missing a null check, causing it to call string methods on None when no coupon code was provided.",
+        "predicted_bug_types": [
+          "null_check"
+        ],
+        "files_changed": [
+          "shopcart/pricing.py"
+        ],
+        "usage": {
+          "input_tokens": 11848,
+          "output_tokens": 1170,
+          "cached_tokens": 2024,
+          "api_calls": 3,
+          "provider": "gemini",
+          "model": "gemini-3-flash-preview"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 17.8,
+        "diagnosis": "The `find_coupon` function throws an `AttributeError` when `code` is `None` because it tries to call `.strip()` on it directly. Checking if `code is None` before processing fixes the issue.",
+        "usage": {
+          "input_tokens": 3861,
+          "output_tokens": 720,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.5-flash"
+        }
+      }
+    },
+    "B3": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 114.2,
+        "diagnosis": "The bulk discount was not applied when the item quantity exactly matched the threshold due to an exclusive comparison operator.",
+        "predicted_bug_types": [
+          "wrong_operator",
+          "off_by_one"
+        ],
+        "files_changed": [
+          "shopcart/pricing.py"
+        ],
+        "usage": {
+          "input_tokens": 26477,
+          "output_tokens": 1570,
+          "cached_tokens": 8116,
+          "api_calls": 5,
+          "provider": "gemini",
+          "model": "gemini-3-flash-preview"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 36.7,
+        "diagnosis": "The bulk discount was not being applied when the quantity exactly matched the threshold because the implementation used a strictly-greater-than comparison (>) instead of greater-than-or-equal (>=). This caused tests involving the exact threshold quantity (10 units) to fail as no discount was applied to the subtotal.",
+        "usage": {
+          "input_tokens": 3706,
+          "output_tokens": 1363,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3-flash-preview"
+        }
+      }
+    },
+    "B4": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 112.4,
+        "diagnosis": "The discount was 100x smaller than intended because the coupon percentage was divided by 100 twice.",
+        "predicted_bug_types": [
+          "cross_function_logic"
+        ],
+        "files_changed": [
+          "shopcart/checkout.py"
+        ],
+        "usage": {
+          "input_tokens": 92500,
+          "output_tokens": 13204,
+          "cached_tokens": 57022,
+          "api_calls": 8,
+          "provider": "gemini",
+          "model": "gemini-3-flash-preview"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 62.6,
+        "diagnosis": "The `checkout` function incorrectly divides the coupon percentage by 100 before passing it to `apply_percentage_discount`. However, `apply_percentage_discount` expects the percentage as a whole number (e.g., 20 for 20%) and performs its own division by 100. This resulted in the discount being 100 times smaller than expected and incorrect tax, shipping, and total calculations.",
+        "usage": {
+          "input_tokens": 3819,
+          "output_tokens": 5358,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3-flash-preview"
+        }
+      }
+    },
+    "B5": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 64.8,
+        "diagnosis": "The function was incorrectly assuming a successful API response format, causing a KeyError when the API returned an error.",
+        "predicted_bug_types": [
+          "api_response_handling"
+        ],
+        "files_changed": [
+          "shopcart/shipping_client.py"
+        ],
+        "usage": {
+          "input_tokens": 16650,
+          "output_tokens": 1939,
+          "cached_tokens": 2028,
+          "api_calls": 4,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 12.3,
+        "diagnosis": "The parse_shipping_quote function assumes a 'data' key exists in every response. However, the documentation and the failing test indicate that error responses do not contain 'data' but instead contain an 'error' key. The function should check the 'status' or check for the existence of 'data' before attempting to access it, and raise a ShippingAPIError if the response status is 'error'.",
+        "usage": {
+          "input_tokens": 3392,
+          "output_tokens": 252,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B6": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": false,
+        "attempts": 1,
+        "duration_s": 58.1,
+        "diagnosis": "The checkout function incorrectly evaluated free shipping eligibility based on the pre-discount subtotal instead of the actual discounted price.",
+        "predicted_bug_types": [
+          "cross_function_logic"
+        ],
+        "files_changed": [
+          "shopcart/checkout.py"
+        ],
+        "usage": {
+          "input_tokens": 33365,
+          "output_tokens": 355,
+          "cached_tokens": 8103,
+          "api_calls": 6,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 10.2,
+        "diagnosis": "The requirement states that the free shipping threshold should be applied to the order 'after discounts'. The code was incorrectly checking `subtotal` (before discounts) instead of `discounted` (after discounts) against `FREE_SHIPPING_THRESHOLD`.",
+        "usage": {
+          "input_tokens": 3577,
+          "output_tokens": 182,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B7": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 79.5,
+        "diagnosis": "The use of a mutable default argument in format_receipt caused state to leak between consecutive function calls.",
+        "predicted_bug_types": [
+          "shared_state"
+        ],
+        "files_changed": [
+          "shopcart/receipt.py"
+        ],
+        "usage": {
+          "input_tokens": 22692,
+          "output_tokens": 563,
+          "cached_tokens": 0,
+          "api_calls": 5,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 18.7,
+        "diagnosis": "The `format_receipt` function accepts a `lines` argument with a default value of `[]`. In Python, mutable default arguments are evaluated only once at definition time. Consequently, `lines` persists across multiple calls to `format_receipt` if not explicitly provided, causing receipts to accumulate items from previous calls.",
+        "usage": {
+          "input_tokens": 3545,
+          "output_tokens": 249,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B8": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 1,
+        "duration_s": 61.4,
+        "diagnosis": "The checkout process failed to release inventory when an exception occurred during reservation, leading to persistent stock depletion.",
+        "predicted_bug_types": [
+          "state_rollback"
+        ],
+        "files_changed": [
+          "shopcart/checkout.py"
+        ],
+        "usage": {
+          "input_tokens": 25930,
+          "output_tokens": 764,
+          "cached_tokens": 0,
+          "api_calls": 5,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 25.3,
+        "diagnosis": "The `checkout` function fails to roll back the reserved stock when an error occurs (such as an OutOfStockError for a later item in the cart). The stock is reserved in a loop, but if an exception occurs mid-loop, the previously reserved items are not released.",
+        "usage": {
+          "input_tokens": 3457,
+          "output_tokens": 281,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B9": {
+      "agent": {
+        "status": "failed",
+        "fixed": false,
+        "localized": true,
+        "type_classified": false,
+        "attempts": 3,
+        "duration_s": 239.9,
+        "diagnosis": "The loyalty program redemption logic likely uses an incorrect divisor, resulting in a value 100 times smaller than expected.",
+        "predicted_bug_types": [
+          "cross_function_logic"
+        ],
+        "files_changed": [
+          "shopcart/loyalty.py"
+        ],
+        "usage": {
+          "input_tokens": 122076,
+          "output_tokens": 3038,
+          "cached_tokens": 36343,
+          "api_calls": 18,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": false,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 14.4,
+        "diagnosis": "The loyalty points logic uses `round(amount_spent * POINTS_PER_DOLLAR)`, which causes standard rounding (e.g., 99.99 * 1 rounds to 100). The documentation specifies that points are earned on 'whole dollar spent' and 'fractions of a dollar earn nothing', which requires truncation (floor division) rather than rounding.",
+        "usage": {
+          "input_tokens": 3459,
+          "output_tokens": 261,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B10": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": true,
+        "attempts": 2,
+        "duration_s": 73.1,
+        "diagnosis": "Tax calculations were failing due to binary floating-point inaccuracies, which I resolved by utilizing the decimal library with correct quantization.",
+        "predicted_bug_types": [
+          "numeric_precision"
+        ],
+        "files_changed": [
+          "shopcart/pricing.py"
+        ],
+        "usage": {
+          "input_tokens": 45425,
+          "output_tokens": 2297,
+          "cached_tokens": 16207,
+          "api_calls": 8,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": true,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 13.1,
+        "diagnosis": "The `calculate_tax` function uses Python's built-in `round()` function, which implements 'round half to even' (banker's rounding), whereas tax authorities require 'round half up'. For example, 0.125 should become 0.13, but `round(0.125, 2)` returns 0.12. Using `decimal.Decimal` with `ROUND_HALF_UP` fixes this.",
+        "usage": {
+          "input_tokens": 3924,
+          "output_tokens": 411,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    },
+    "B11": {
+      "agent": {
+        "status": "fixed",
+        "fixed": true,
+        "localized": true,
+        "type_classified": false,
+        "attempts": 2,
+        "duration_s": 97.2,
+        "diagnosis": "The method was failing to aggregate quantities for duplicate SKUs and incorrectly handled string-to-integer conversion for the quantity field.",
+        "predicted_bug_types": [
+          "cross_function_logic",
+          "api_response_handling"
+        ],
+        "files_changed": [
+          "shopcart/cart.py"
+        ],
+        "usage": {
+          "input_tokens": 52136,
+          "output_tokens": 726,
+          "cached_tokens": 8082,
+          "api_calls": 10,
+          "provider": "gemini",
+          "model": "gemini-3.1-flash-lite"
+        }
+      },
+      "baseline": {
+        "fixed": false,
+        "localized": true,
+        "edits_rejected": 0,
+        "duration_s": 9.1,
+        "diagnosis": "The 'from_dict' method in 'shopcart/cart.py' initializes 'CartItem' with the 'quantity' field as a string (from the form payload), but 'CartItem' expects an integer. The TypeError occurs later when attempting to multiply this string by the product price in 'line_total'.",
+        "usage": {
+          "input_tokens": 3530,
+          "output_tokens": 218,
+          "cached_tokens": 0,
+          "api_calls": 1,
+          "model": "gemini-3.1-flash-lite"
+        }
+      }
+    }
+  }
+}

@@ -75,10 +75,12 @@ class Collector:
 
 
 def localized(ws: Workspace, bug: dict, changed_files: set[str]) -> bool:
-    """Root cause localized: the bug's file was changed and the buggy code is gone."""
-    if bug["file"] not in changed_files:
-        return False
-    return bug["buggy"] not in ws.read(bug["file"])
+    """Root cause localized: the fix changed the file that contains the planted bug.
+
+    (Checking that the buggy line disappeared is wrong for fixes that add a guard *before* an
+    otherwise-correct line, e.g. B5, so the file-level check is used.)
+    """
+    return bug["file"] in changed_files
 
 
 def run_agent_on(bug: dict, tmp: Path) -> dict:
@@ -177,8 +179,8 @@ def summarize(results: dict, bugs: list[dict]) -> str:
         f"{sum(b.get('usage', {}).get('api_calls', 0) for b in base) / len(base):.1f}" if base else "—")
 
     lines += ["", "## Per bug", "",
-              "| Bug | Difficulty | Type | Agent | Attempts | Time | Localized |" + (" Baseline |" if results["baseline"] else ""),
-              "|---|---|---|---|---|---|---|" + ("---|" if results["baseline"] else "")]
+              "| Bug | Difficulty | Type | Agent | Attempts | Time | Localized | Model |" + (" Baseline |" if results["baseline"] else ""),
+              "|---|---|---|---|---|---|---|---|" + ("---|" if results["baseline"] else "")]
     for b in bugs:
         r = results["bugs"].get(b["id"])
         if not r or "agent" not in r:
@@ -186,7 +188,8 @@ def summarize(results: dict, bugs: list[dict]) -> str:
         a = r["agent"]
         verdict = "✅ fixed" if a["fixed"] else ("⚠️ error" if a["status"] == "error" else "❌ not fixed")
         cells = [f"{b['id']} {b['title']}", b["difficulty"], b["bug_type"], verdict, str(a["attempts"] or "—"),
-                 f"{a['duration_s']:.0f}s", "yes" if a["localized"] else "no"]
+                 f"{a['duration_s']:.0f}s", "yes" if a["localized"] else "no",
+                 a.get("usage", {}).get("model", "—")]
         if results["baseline"]:
             cells.append("✅" if r.get("baseline", {}).get("fixed") else "❌")
         lines.append("| " + " | ".join(cells) + " |")
@@ -203,7 +206,21 @@ def main() -> int:
     parser.add_argument("--bugs", help="Comma-separated bug IDs (default: all)")
     parser.add_argument("--baseline", action="store_true", help="Also run the single-shot baseline")
     parser.add_argument("--resume", help="Results JSON from an earlier (partial) evaluation")
+    parser.add_argument("--report", help="Only rebuild the Markdown report from a results JSON (no API calls)")
     args = parser.parse_args()
+
+    if args.report:
+        path = Path(args.report)
+        results = json.loads(path.read_text(encoding="utf-8"))
+        by_id = {b["id"]: b for b in load_bugs()}
+        for bid, entry in results["bugs"].items():
+            if "agent" in entry and "files_changed" in entry["agent"]:
+                entry["agent"]["localized"] = by_id[bid]["file"] in entry["agent"]["files_changed"]
+        path.write_text(json.dumps(results, indent=2), encoding="utf-8")
+        summary = summarize(results, load_bugs())
+        path.with_suffix(".md").write_text(summary, encoding="utf-8")
+        print(summary)
+        return 0
 
     bugs = load_bugs()
     if args.bugs:
