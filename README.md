@@ -12,13 +12,15 @@
 ![Gemini](https://img.shields.io/badge/LLM-Gemini_%7C_Claude-8E75B2)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[Demo](#demo) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Results](#results) · [Roadmap](#roadmap)
+**[▶ Live demo](https://autonomous-ai-dev-ops-agent.vercel.app)** · [Demo](#demo) · [How it works](#how-it-works) · [Quick start](#quick-start) · [Results](#results) · [Roadmap](#roadmap)
 
 </div>
 
 ---
 
 ## Demo
+
+**▶ Try it live: https://autonomous-ai-dev-ops-agent.vercel.app** — click **Watch a Recorded Run** to replay a real run, or **Start a New Run** to watch the agent fix a bug live. The free server sleeps when idle, so the first load can take ~50 seconds.
 
 **Live Trace** — the agent narrates each plan, tool call, result, and reflection as it works:
 
