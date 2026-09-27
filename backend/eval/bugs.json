@@ -1,5 +1,5 @@
 {
-  "_comment": "Ground truth for the seeded demo repo. Hidden from the agent — used only for evaluation (PRD §10). `buggy` is the exact text in demo-repo; `fixed` is the correct replacement.",
+  "_comment": "Ground truth for the seeded demo repo. Hidden from the agent — used only for evaluation (scripts/evaluate.py). `buggy` is the exact text in demo-repo; `fixed` is the correct replacement.",
   "bugs": [
     {
       "id": "B1",

@@ -1,4 +1,4 @@
-r"""Evaluation harness — produces the PRD §10 metrics for the report.
+r"""Evaluation harness — fix rate, localization, attempts and timing per planted bug.
 
 For each planted bug, runs the agent on a copy of the demo repo with only that
 bug present, and records: fixed (full suite passes), root cause localized

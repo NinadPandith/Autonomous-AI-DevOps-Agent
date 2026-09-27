@@ -1,6 +1,6 @@
 """SQLite persistence for repos, runs, reasoning steps and fix attempts.
 
-Schema follows docs/AI_DevOps_Agent_BackendSchema.md §1. Types are kept
+Four tables: repos, runs, reasoning_steps, fix_attempts. Types are kept
 portable (TEXT/INTEGER/REAL, JSON stored as TEXT) so the same DDL works on
 PostgreSQL later.
 """

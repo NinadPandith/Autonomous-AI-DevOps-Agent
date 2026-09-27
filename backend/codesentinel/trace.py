@@ -1,8 +1,8 @@
 """The reasoning trace — one entry per plan / tool_call / result / reflection.
 
-Every step has exactly the shape of a `reasoning_steps` row (Backend Schema
-§1.3), so the CLI printer, the database and the WebSocket all consume the
-same dicts. Observers receive steps as they happen.
+Every step has exactly the shape of a `reasoning_steps` row, so the CLI
+printer, the database and the WebSocket all consume the same dicts.
+Observers receive steps as they happen.
 """
 from typing import Any, Protocol
 

@@ -1,4 +1,4 @@
-// All user-facing copy that has a rule in docs/AI_DevOps_Agent_ContentGuidelines.md lives here,
+// All user-facing copy that follows a wording rule lives here,
 // so the five pages stay consistent. Never show raw internal values — map them through these tables.
 
 export const STATUS = {

@@ -1,6 +1,6 @@
 """Test Runner tool: run the workspace's pytest suite in a subprocess.
 
-Isolation (Tech Stack §3, process level): the process runs with the workspace
+Isolation (process level): the process runs with the workspace
 as its working directory, a hard timeout, and an environment scrubbed of
 secrets so test code cannot read the LLM API key from its environment. A
 Docker sandbox is future work.

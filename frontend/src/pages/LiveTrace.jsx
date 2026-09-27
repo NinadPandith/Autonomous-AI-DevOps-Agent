@@ -96,7 +96,7 @@ function LiveTrace({ runId }) {
     }
   }, [visible.length, hydratedCount, replaying])
 
-  // Warn before leaving mid-run (App Flow §2.3).
+  // Warn before leaving mid-run.
   useEffect(() => {
     if (!running) return
     const warn = (e) => e.preventDefault()

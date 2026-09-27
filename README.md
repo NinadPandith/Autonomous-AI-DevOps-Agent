@@ -240,7 +240,7 @@ Other runs: all 8 original bugs at once were fixed in a single attempt (11 faili
 │   └── run_agent.py         Command-line runner
 ├── frontend/                React dashboard (5 pages, shared components)
 ├── demo-repo/               Seeded benchmark repository with 11 planted bugs
-├── docs/                    Product docs (PRD, app flow, schema, …) and screenshots
+├── docs/screenshots/        Screenshots used in this README
 ├── render.yaml              Render blueprint (API)
 └── DEPLOY.md                Free deployment guide (Render + Vercel)
 ```
@@ -261,11 +261,6 @@ Other runs: all 8 original bugs at once were fixed in a single attempt (11 faili
 - [ ] Long-term memory of past fixes (vector store)
 - [ ] Open a GitHub pull request with the verified fix
 - [ ] PostgreSQL for durable hosted history
-
-## Documentation
-
-The product was planned before it was built — the planning documents are in [`docs/`](docs/):
-[PRD](docs/AI_DevOps_Agent_PRD.md) · [App Flow](docs/AI_DevOps_Agent_AppFlow.md) · [Backend Schema](docs/AI_DevOps_Agent_BackendSchema.md) · [Tech Stack](docs/AI_DevOps_Agent_TechStack.md) · [Implementation Plan](docs/AI_DevOps_Agent_ImplementationPlan.md) · [Content Guidelines](docs/AI_DevOps_Agent_ContentGuidelines.md)
 
 ## Contributing
 

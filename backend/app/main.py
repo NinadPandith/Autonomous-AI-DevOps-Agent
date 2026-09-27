@@ -1,4 +1,4 @@
-"""FastAPI app: REST endpoints + live WebSocket trace (Backend Schema §2–3).
+"""FastAPI app: REST endpoints + live WebSocket trace.
 
 Run locally (from backend/):
     .venv\\Scripts\\uvicorn app.main:app --reload

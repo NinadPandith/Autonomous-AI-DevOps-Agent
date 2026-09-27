@@ -24,6 +24,6 @@ CI runs the same checks on every push.
 
 - **Keep the reasoning-trace shape stable.** Every step is a `reasoning_steps` row (`plan`, `tool_call`, `result`, `reflection`); the dashboard, database and WebSocket all depend on it.
 - **Never let the agent see the answers.** Planted-bug ground truth lives in `backend/eval/bugs.json`, outside anything the agent can read.
-- **UI copy** follows [the Content Guidelines](docs/AI_DevOps_Agent_ContentGuidelines.md): precise, plain, and honest about uncertainty.
+- **UI copy** is precise, plain, and honest about uncertainty. Shared strings live in `frontend/src/copy.js`.
 - **Adding a planted bug:** add it to `demo-repo/`, add its `buggy`/`fixed` snippets to `bugs.json`, and check `verify_demo_repo.py` still reports `RESULT: OK`.
 - Prefer small, focused pull requests with a clear description of the change and how you tested it.

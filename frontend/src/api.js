@@ -1,4 +1,4 @@
-// Thin client for the CodeSentinel backend (Backend Schema doc §2–3).
+// Thin client for the CodeSentinel backend: REST API + WebSocket stream.
 import { ERRORS } from './copy'
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8010/api'
